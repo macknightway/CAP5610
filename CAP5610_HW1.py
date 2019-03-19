@@ -1,8 +1,10 @@
 from keras.datasets import mnist
+from keras.models import Sequential
+from keras.layers import Dense, Activation
 from keras.utils import to_categorical
 import math
 import numpy as np
-import sys
+
 
 def sigmoid(z):
     return 1 / (1 + math.exp(-z))
@@ -48,6 +50,21 @@ def sgd_cce(a, y, x, w, b, lr, j):
     b_update = b - lr * b_gradient
     return w_update, b_update
 
+
+def logistic_regression_keras():
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+    y_train = to_categorical(y_train)
+
+    x_train = x_train.reshape((60000, 28 * 28))
+    x_train = x_train.astype('float32') / 255
+
+    model = Sequential()
+    model.add(Dense(784, input_shape=(784,)))
+    model.add(Dense(10, activation='softmax'))
+
+    model.compile(optimizer='sgd', loss='mse', metrics=['accuracy'])
+    model.fit(x_train, y_train, epochs=1, batch_size=1)
 
 def logistic_regression_softmax():
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -157,4 +174,5 @@ def logistic_regression_sigmoid():
 
 if __name__ == '__main__':
     #logistic_regression_sigmoid()
-    logistic_regression_softmax()
+    #logistic_regression_softmax()
+    logistic_regression_keras()
