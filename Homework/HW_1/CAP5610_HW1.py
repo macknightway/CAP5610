@@ -197,7 +197,7 @@ def logistic_regression_softmax():
             a = []
             x = x_train[i]
             for neuron in range(10):
-                z.append(np.dot(x, w[neuron]))
+                z.append(np.dot(x, w[neuron]) + b[neuron])
             for neuron in range(10):
                 a.append(softmax(z[neuron], z))
 
