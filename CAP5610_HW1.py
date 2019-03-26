@@ -147,11 +147,12 @@ def logistic_regression_keras_modified():
     x_train = x_train.reshape((60000, 28 * 28))
     x_train = x_train.astype('float32') / 255
 
+    x_train_new = list()
     for i in range(60000):
         x_train_new = []
         x_train_new.append(np.append(x_train[i], white_space_regions[i]))
-        x_train_new = x_train_new + black_pixels_count[i]
-    x_train_new = np.array(x_train_new)
+        x_train_new = np.array(x_train_new)
+        x_train_new = np.append(x_train_new, num_black_pixels[i])
     model = Sequential()
     model.add(Dense(786, input_shape=(786,)))
     model.add(Dense(10, activation='softmax'))
