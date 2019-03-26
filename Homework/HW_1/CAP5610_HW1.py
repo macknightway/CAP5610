@@ -139,26 +139,22 @@ def logistic_regression_keras_modified():
     num_black_pixels = []
     for i in range(60000):
         white_space_region_value, black_pixels_count = connected_components(x_train[i])
-        white_space_regions.append(white_space_region_value/3.0)
-        num_black_pixels.append(black_pixels_count/784.0)
+        white_space_regions.append(white_space_region_value / 3.0)
+        num_black_pixels.append(black_pixels_count / 784.0)
 
     y_train = to_categorical(y_train)
 
     x_train = x_train.reshape((60000, 28 * 28))
     x_train = x_train.astype('float32') / 255
-
-    x_train_new = list()
-    for i in range(60000):
-        x_train_new = []
-        x_train_new.append(np.append(x_train[i], white_space_regions[i]))
-        x_train_new = np.array(x_train_new)
-        x_train_new = np.append(x_train_new, num_black_pixels[i])
+    white_space_regions = np.array(white_space_regions)
+    x_train = np.column_stack((x_train, white_space_regions))
+    x_train = np.column_stack((x_train, num_black_pixels))
     model = Sequential()
     model.add(Dense(786, input_shape=(786,)))
     model.add(Dense(10, activation='softmax'))
 
     model.compile(optimizer='sgd', loss='mse', metrics=['accuracy'])
-    model.fit(x_train_new, y_train, epochs=10, batch_size=1)
+    model.fit(x_train, y_train, epochs=1, batch_size=1)
 
 
 def logistic_regression_keras():
@@ -189,7 +185,7 @@ def logistic_regression_softmax():
 
     w = [[0] * 784, [0] * 784,[0] * 784,[0] * 784,[0] * 784,
          [0] * 784, [0] * 784,[0] * 784,[0] * 784,[0] * 784]
-    w = np.array(w)
+
     b = [0] * 10
 
     lr = .001
@@ -281,7 +277,7 @@ def logistic_regression_sigmoid():
                 print("Epoch {0}: Predicted: {1}, Ground Truth: {2}".format(epoch, y_hat, ground_truth))
 
 if __name__ == '__main__':
-    #logistic_regression_sigmoid()
-    #logistic_regression_softmax()
-    #logistic_regression_keras()
+    logistic_regression_sigmoid()
+    logistic_regression_softmax()
+    logistic_regression_keras()
     logistic_regression_keras_modified()
