@@ -55,23 +55,23 @@ def sgd_cce(a, y, x, w, b, lr, j):
 def preprocess_image(image):
     whitespace_regions = np.zeros((30, 30))
     img_len = img_width = 28
+    num_black_pixels = 0
     for i in range(img_len):
         for j in range(img_width):
             if image[i][j] > 50:
                 image[i][j] = 255
             else:
                 image[i][j] = 0
+                num_black_pixels += 1
                 whitespace_regions[i + 1][j + 1] = 1
-    np.set_printoptions(linewidth = 180)
-    return image, whitespace_regions
+    return image, whitespace_regions, num_black_pixels
 
 def connected_components(image):
-    image, whitespace_regions = preprocess_image(image)
+    image, whitespace_regions, num_black_pixels = preprocess_image(image)
     need_to_visit = whitespace_regions
     num_whitespace_regions = 1
     i = j = 1
     visit_stack = []
-    print(need_to_visit)
     while np.any(need_to_visit):
         #Initial case
         if need_to_visit[i][j]:
@@ -130,7 +130,34 @@ def connected_components(image):
                     for w in range(30):
                         if need_to_visit[k][w]:
                             i,j = k,w
-    return num_whitespace_regions
+    return num_whitespace_regions, num_black_pixels
+
+
+def logistic_regression_keras_modified():
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    white_space_regions = []
+    num_black_pixels = []
+    for i in range(60000):
+        white_space_region_value, black_pixels_count = connected_components(x_train[i])
+        white_space_regions.append(white_space_region_value/3.0)
+        num_black_pixels.append(black_pixels_count/784.0)
+
+    y_train = to_categorical(y_train)
+
+    x_train = x_train.reshape((60000, 28 * 28))
+    x_train = x_train.astype('float32') / 255
+
+    for i in range(60000):
+        x_train_new = []
+        x_train_new.append(np.append(x_train[i], white_space_regions[i]))
+        x_train_new = x_train_new + black_pixels_count[i]
+    x_train_new = np.array(x_train_new)
+    model = Sequential()
+    model.add(Dense(786, input_shape=(786,)))
+    model.add(Dense(10, activation='softmax'))
+
+    model.compile(optimizer='sgd', loss='mse', metrics=['accuracy'])
+    model.fit(x_train_new, y_train, epochs=10, batch_size=1)
 
 
 def logistic_regression_keras():
@@ -146,7 +173,7 @@ def logistic_regression_keras():
     model.add(Dense(10, activation='softmax'))
 
     model.compile(optimizer='sgd', loss='mse', metrics=['accuracy'])
-    model.fit(x_train, y_train, epochs=1, batch_size=1)
+    model.fit(x_train, y_train, epochs=10, batch_size=1)
 
 def logistic_regression_softmax():
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -161,6 +188,7 @@ def logistic_regression_softmax():
 
     w = [[0] * 784, [0] * 784,[0] * 784,[0] * 784,[0] * 784,
          [0] * 784, [0] * 784,[0] * 784,[0] * 784,[0] * 784]
+    w = np.array(w)
     b = [0] * 10
 
     lr = .001
@@ -190,12 +218,7 @@ def logistic_regression_softmax():
             for j in range(10):
                 w[j], b[j] = sgd_cce(a[j], y_train[i], x, w[j], b[j], lr, j)
 
-            if i % 1000 == 0:
-                print("Y_Hat: {0}".format(y_hat))
-                print("Y: {0}".format(y_arg_max))
-                print(a)
-                print("")
-
+            print("Epoch {0}: Predicted: {1}, Ground Truth: {2}".format(epoch, y_hat, y_arg_max))
 
 
 def logistic_regression_sigmoid():
@@ -215,49 +238,49 @@ def logistic_regression_sigmoid():
     x_train = x_train.reshape((60000, 28 * 28))
     x_train = x_train.astype('float32') / 255
 
-    #x_test = x_test.reshape((10000, 28 * 28))
-    #x_test = x_test.astype('float32') / 255
+    # x_test = x_test.reshape((10000, 28 * 28))
+    # x_test = x_test.astype('float32') / 255
 
     w = [0] * 784
+    w = np.array(w)
     b = [0]
+    b = np.array(b)
 
     lr = .001
 
-    correct = incorrect = 0
-
     classifiers = [0] * 10
+
+    y_hat = ground_truth = ''
 
     # Train k classifiers
     for k in range(10):
-        # Train for 100 epoch
+        # Train for 10 epoch
         for epoch in range(10):
             # Train with batch size of 1
             for i in range(y_train_mat[k].shape[0]):
                 x = x_train[i]
                 z = np.dot(x, w) + b
                 a = sigmoid(z)
-                if a >= .5:
-                    is_digit_prediction = True
-                else:
-                    is_digit_prediction = False
 
                 y = y_train_mat[k][i]
 
-                w, b = sgd_bce(a, y, x, w, b, lr)
+                if y:
+                    ground_truth = k
+                else:
+                    ground_truth = 'Not k'
 
-                if epoch > 90:
-                    if (y and is_digit_prediction) or (not y and not is_digit_prediction):
-                        # Correct prediction
-                        correct += 1
-                    else:
-                        # Incorrect prediction
-                        incorrect += 1
-        classifiers[k] = (w, b)
+                if a >= .5:
+                    is_digit_prediction = True
+                    y_hat = k
+                else:
+                    is_digit_prediction = False
+                    y_hat = 'Not k'
+
+                w, b = sgd_bce(a, y, x, w, b, lr)
+                print("Epoch {0}: Predicted: {1}, Ground Truth: {2}".format(epoch, y_hat, ground_truth))
 
 if __name__ == '__main__':
     #logistic_regression_sigmoid()
     #logistic_regression_softmax()
     #logistic_regression_keras()
-    (x_train, y_train), (x_test, y_test) = mnist.load_data()
-
-    print(x_train.shape)
+    logistic_regression_keras_modified()
