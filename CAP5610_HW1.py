@@ -4,6 +4,7 @@ from keras.layers import Dense, Activation
 from keras.utils import to_categorical
 import math
 import numpy as np
+import sys
 
 
 def sigmoid(z):
@@ -49,6 +50,87 @@ def sgd_cce(a, y, x, w, b, lr, j):
     w_update = w - lr * w_gradient
     b_update = b - lr * b_gradient
     return w_update, b_update
+
+
+def preprocess_image(image):
+    whitespace_regions = np.zeros((30, 30))
+    img_len = img_width = 28
+    for i in range(img_len):
+        for j in range(img_width):
+            if image[i][j] > 50:
+                image[i][j] = 255
+            else:
+                image[i][j] = 0
+                whitespace_regions[i + 1][j + 1] = 1
+    np.set_printoptions(linewidth = 180)
+    return image, whitespace_regions
+
+def connected_components(image):
+    image, whitespace_regions = preprocess_image(image)
+    need_to_visit = whitespace_regions
+    num_whitespace_regions = 1
+    i = j = 1
+    visit_stack = []
+    print(need_to_visit)
+    while np.any(need_to_visit):
+        #Initial case
+        if need_to_visit[i][j]:
+            need_to_visit[i][j] = 0
+            visit_stack.append((i,j))
+        #Down-Right
+        elif need_to_visit[i+1][j+1]:
+            i = i + 1
+            j = j + 1
+            need_to_visit[i][j] = 0
+            visit_stack.append((i,j))
+        #Right
+        elif need_to_visit[i][j+1]:
+            j = j + 1
+            need_to_visit[i][j] = 0
+            visit_stack.append((i,j))
+        #Up-Right
+        elif need_to_visit[i-1][j+1]:
+            i = i - 1
+            j = j + 1
+            need_to_visit[i][j] = 0
+            visit_stack.append((i, j))
+        #Up
+        elif need_to_visit[i-1][j]:
+            i = i - 1
+            need_to_visit[i][j] = 0
+            visit_stack.append((i, j))
+        #Up-Left
+        elif need_to_visit[i-1][j-1]:
+            i = i - 1
+            j = j - 1
+            need_to_visit[i][j] = 0
+            visit_stack.append((i, j))
+        #Left
+        elif need_to_visit[i][j-1]:
+            j = j - 1
+            need_to_visit[i][j] = 0
+            visit_stack.append((i, j))
+        #Down-Left
+        elif need_to_visit[i+1][j-1]:
+            i = i + 1
+            j = j - 1
+            need_to_visit[i][j] = 0
+            visit_stack.append((i, j))
+        #Down
+        elif need_to_visit[i+1][j]:
+            i = i + 1
+            need_to_visit[i][j] = 0
+            visit_stack.append((i, j))
+        else:
+            if visit_stack:
+                i,j = visit_stack.pop()
+            else:
+                num_whitespace_regions += 1
+                for k in range(30):
+                    for w in range(30):
+                        if need_to_visit[k][w]:
+                            i,j = k,w
+    return num_whitespace_regions
 
 
 def logistic_regression_keras():
@@ -175,4 +257,7 @@ def logistic_regression_sigmoid():
 if __name__ == '__main__':
     #logistic_regression_sigmoid()
     #logistic_regression_softmax()
-    logistic_regression_keras()
+    #logistic_regression_keras()
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+    print(x_train.shape)
